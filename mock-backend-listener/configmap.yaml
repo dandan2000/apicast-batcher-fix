@@ -1,0 +1,46 @@
+apiVersion: v1
+data:
+  nginx.conf: |
+    worker_processes 1;
+    pid /tmp/nginx.pid;
+    error_log /dev/stderr info;
+
+    events {
+        worker_connections 1024;
+    }
+
+    http {
+        client_body_temp_path /tmp/client_temp;
+        proxy_temp_path       /tmp/proxy_temp_path;
+        fastcgi_temp_path     /tmp/fastcgi_temp;
+        uwsgi_temp_path       /tmp/uwsgi_temp;
+        scgi_temp_path        /tmp/scgi_temp;
+
+        access_log /dev/stdout;
+        default_type application/xml;
+
+        server {
+            listen 3000;
+            server_name _;
+
+            # Auth and Authrep endpoints (user_key, app_id/app_key, and OAuth)
+            location ~ ^/transactions/(authrep|authorize|oauth_authrep|oauth_authorize)\.xml$ {
+                default_type application/xml;
+                return 200 '<?xml version="1.0" encoding="UTF-8"?><status><authorized>true</authorized><plan>MockPlan</plan></status>';
+            }
+
+            # Batch reports
+            location = /transactions.xml {
+                default_type application/xml;
+                return 202 '<?xml version="1.0" encoding="UTF-8"?><status>ok</status>';
+            }
+
+            # Healthcheck
+            location = /check.xml {
+                return 200 '<?xml version="1.0" encoding="UTF-8"?><status>ok</status>';
+            }
+        }
+    }
+kind: ConfigMap
+metadata:
+  name: mock-backend-listener-conf
